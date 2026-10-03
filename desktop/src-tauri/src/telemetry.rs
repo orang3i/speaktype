@@ -6,7 +6,7 @@ use tauri::{AppHandle, Emitter, Manager};
 
 use crate::{dictation::TelemetryStats, platform::desktop_environment, AppState, LockExt};
 
-pub const DEFAULT_TELEMETRY_ENDPOINT: &str = "http://127.0.0.1:8080/api/v1/telemetry"; //todo: add actual end point
+pub const DEFAULT_TELEMETRY_ENDPOINT: &str = "https://telemetry.speaktype.com/api/v1/telemetry"; //todo: add actual end point
 const HTTP_TIMEOUT: Duration = Duration::from_secs(3);
 
 #[derive(Debug, Serialize, Clone)]
