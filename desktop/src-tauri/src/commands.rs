@@ -510,7 +510,23 @@ pub async fn get_telemetry_payload(
     app: AppHandle,
     state: State<'_, AppState>,
 ) -> CommandResult<crate::telemetry::TelemetryPayload> {
-    let model = state.settings().selected_model;
+    let settings = state.settings();
+    let model = settings.selected_model;
+    let anonymous_id = settings.anonymous_id;
     let stats = state.telemetry.lock_unpoisoned().clone();
-    Ok(crate::telemetry::create_payload(app, model, stats))
+    Ok(crate::telemetry::create_payload(app, model, anonymous_id, stats))
 }
+
+#[tauri::command]
+pub async fn reset_anonymous_id(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> CommandResult<String> {
+    let mut settings = state.settings();
+    let new_id = uuid::Uuid::new_v4().to_string();
+    settings.anonymous_id = new_id.clone();
+    state.replace_settings(settings)?;
+    let _ = app.emit("settings-changed", ());
+    Ok(new_id)
+}
+

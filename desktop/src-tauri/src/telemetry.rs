@@ -7,6 +7,7 @@ use crate::{dictation::TelemetryStats, platform::desktop_environment, AppState, 
 
 #[derive(Debug, Serialize, Clone)]
 pub struct TelemetryPayload {
+    pub anonymous_id: String,
     pub os_name: String,
     pub os_version: String,
     pub arch: String,
@@ -21,7 +22,12 @@ pub struct TelemetryPayload {
     pub stats: TelemetryStats,
 }
 
-pub fn create_payload(app: AppHandle, model: String, stats: TelemetryStats) -> TelemetryPayload {
+pub fn create_payload(
+    app: AppHandle,
+    model: String,
+    anonymous_id: String,
+    stats: TelemetryStats,
+) -> TelemetryPayload {
     let os_name = System::name().unwrap_or_else(|| std::env::consts::OS.to_string());
     let os_version = System::os_version().unwrap_or_else(|| "Unknown".to_string());
     let arch = std::env::consts::ARCH.to_string();
@@ -35,6 +41,7 @@ pub fn create_payload(app: AppHandle, model: String, stats: TelemetryStats) -> T
     let desktop_env = desktop_environment();
 
     TelemetryPayload {
+        anonymous_id,
         os_name,
         os_version,
         arch,
@@ -56,9 +63,11 @@ pub fn is_exiting() -> bool {
 /// Prompts the UI to display the telemetry payload before exiting.
 pub fn prompt_exit_telemetry(app: &AppHandle) {
     let state = app.state::<AppState>();
-    let model = state.settings().selected_model;
+    let settings = state.settings();
+    let model = settings.selected_model;
+    let anonymous_id = settings.anonymous_id;
     let stats = state.telemetry.lock_unpoisoned().clone();
-    let payload = create_payload(app.clone(), model, stats);
+    let payload = create_payload(app.clone(), model, anonymous_id, stats);
     crate::tray::open_main_window(app, None);
     let _ = app.emit("show-telemetry-payload", &payload);
 }
@@ -74,9 +83,11 @@ pub fn clean_exit(app: &AppHandle) {
         app.exit(0);
         return;
     }
-    let model = state.settings().selected_model;
+    let settings = state.settings();
+    let model = settings.selected_model;
+    let anonymous_id = settings.anonymous_id;
     let stats = state.telemetry.lock_unpoisoned().clone();
-    let payload = create_payload(app.clone(), model, stats);
+    let payload = create_payload(app.clone(), model, anonymous_id, stats);
     eprintln!("Exit telemetry:");
     eprintln!("{payload:?}");
 
@@ -91,6 +102,7 @@ mod tests {
     fn test_linux_payload_serialization() {
         let stats = TelemetryStats::new();
         let payload = TelemetryPayload {
+            anonymous_id: "test-anon-id-123".into(),
             os_name: "Linux".into(),
             os_version: "44".into(),
             arch: "x86_64".into(),
@@ -103,6 +115,7 @@ mod tests {
         };
 
         let json = serde_json::to_string(&payload).unwrap();
+        assert!(json.contains("\"anonymous_id\":\"test-anon-id-123\""));
         assert!(json.contains("\"distribution_id\":\"fedora\""));
         assert!(json.contains("\"desktop_env\":\"GNOME (Wayland)\""));
         assert!(json.contains("\"arch\":\"x86_64\""));
@@ -112,6 +125,7 @@ mod tests {
     fn test_macos_or_windows_payload_omits_none_fields() {
         let stats = TelemetryStats::new();
         let payload = TelemetryPayload {
+            anonymous_id: "test-anon-id-456".into(),
             os_name: "macOS".into(),
             os_version: "15.1".into(),
             arch: "aarch64".into(),
@@ -124,6 +138,7 @@ mod tests {
         };
 
         let json = serde_json::to_string(&payload).unwrap();
+        assert!(json.contains("\"anonymous_id\":\"test-anon-id-456\""));
         assert!(!json.contains("distribution_id"));
         assert!(!json.contains("desktop_env"));
         assert!(json.contains("\"os_name\":\"macOS\""));

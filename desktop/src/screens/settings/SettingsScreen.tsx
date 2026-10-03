@@ -4,6 +4,7 @@ import {
   ClipboardCheck,
   Command,
   Eye,
+  Fingerprint,
   Globe,
   Hand,
   Import,
@@ -252,11 +253,12 @@ function LanguageSection() {
 }
 
 function TelemetrySection() {
-  const { settings } = useStore();
+  const { settings, refreshSettings } = useStore();
   const save = useSave();
   const toast = useToast();
   const [previewPayload, setPreviewPayload] = useState<TelemetryPayload | null>(null);
   const [loading, setLoading] = useState(false);
+  const [resettingId, setResettingId] = useState(false);
 
   const inspect = async () => {
     setLoading(true);
@@ -267,6 +269,19 @@ function TelemetrySection() {
       toast(errorMessage(e), "error");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const resetId = async () => {
+    setResettingId(true);
+    try {
+      await api.resetAnonymousId();
+      await refreshSettings();
+      toast("Anonymous identifier reset", "success");
+    } catch (e) {
+      toast(errorMessage(e), "error");
+    } finally {
+      setResettingId(false);
     }
   };
 
@@ -290,6 +305,32 @@ function TelemetrySection() {
             checked={settings.telemetryEnabled}
             onChange={(telemetryEnabled) => save({ telemetryEnabled })}
           />
+        </div>
+      </SettingRow>
+
+      <SettingRow
+        icon={Fingerprint}
+        tone="neutral"
+        label="Anonymous identifier"
+        description="A random identifier included with telemetry to distinguish installations without identifying you."
+      >
+        <div className="flex items-center gap-2">
+          <code
+            title={settings.anonymousId}
+            className="rounded border border-line-subtle bg-surface-sunken px-2 py-1 font-mono text-xs text-ink-secondary"
+          >
+            {settings.anonymousId ? `${settings.anonymousId.slice(0, 8)}…` : "Not set"}
+          </code>
+          <Button
+            size="sm"
+            variant="ghost"
+            icon={RotateCw}
+            loading={resettingId}
+            onClick={resetId}
+            title="Generate a new anonymous identifier"
+          >
+            Reset
+          </Button>
         </div>
       </SettingRow>
 

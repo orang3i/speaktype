@@ -46,6 +46,7 @@ export interface Settings {
   hasImportedV1: boolean;
   telemetryEnabled: boolean;
   showTelemetryPayload: boolean;
+  anonymousId: string;
 }
 
 export type OS = "macos" | "windows" | "linux";
@@ -169,6 +170,7 @@ export interface UpdateInfo {
 }
 
 export interface TelemetryPayload {
+  anonymous_id: string;
   os_name: string;
   os_version: string;
   arch: string;
@@ -219,6 +221,7 @@ export const api = {
   hideTrayPanel: () => invoke<void>("hide_tray_panel"),
   quitApp: (force?: boolean) => invoke<void>("quit_app", { force }),
   getTelemetryPayload: () => invoke<TelemetryPayload>("get_telemetry_payload"),
+  resetAnonymousId: () => invoke<string>("reset_anonymous_id"),
 };
 
 /** Turns a rejected invoke into a readable message. */
