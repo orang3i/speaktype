@@ -222,6 +222,7 @@ export const api = {
   quitApp: (force?: boolean) => invoke<void>("quit_app", { force }),
   getTelemetryPayload: () => invoke<TelemetryPayload>("get_telemetry_payload"),
   resetAnonymousId: () => invoke<string>("reset_anonymous_id"),
+  sendTelemetry: () => invoke<void>("send_telemetry"),
 };
 
 /** Turns a rejected invoke into a readable message. */

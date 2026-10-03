@@ -366,6 +366,7 @@ pub fn run() {
             commands::quit_app,
             commands::get_telemetry_payload,
             commands::reset_anonymous_id,
+            commands::send_telemetry,
         ])
         .build(tauri::generate_context!())
         .expect("error while building SpeakType");

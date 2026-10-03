@@ -164,6 +164,8 @@ export function installBrowserPreview() {
               errors: {},
             },
           };
+        case "send_telemetry":
+          return null;
         default:
           return null;
       }

@@ -1,9 +1,13 @@
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
 use serde::Serialize;
 use sysinfo::System;
 use tauri::{AppHandle, Emitter, Manager};
 
 use crate::{dictation::TelemetryStats, platform::desktop_environment, AppState, LockExt};
+
+pub const DEFAULT_TELEMETRY_ENDPOINT: &str = "http://127.0.0.1:8080/api/v1/telemetry"; //todo: add actual end point
+const HTTP_TIMEOUT: Duration = Duration::from_secs(3);
 
 #[derive(Debug, Serialize, Clone)]
 pub struct TelemetryPayload {
@@ -54,6 +58,57 @@ pub fn create_payload(
     }
 }
 
+/// Resolves the telemetry endpoint URL, checking environment variable overrides first.
+pub fn telemetry_endpoint() -> String {
+    std::env::var("SPEAKTYPE_TELEMETRY_ENDPOINT")
+        .or_else(|_| std::env::var("SPEAKTYPE_TELEMETRY_URL"))
+        .unwrap_or_else(|_| DEFAULT_TELEMETRY_ENDPOINT.to_string())
+}
+
+/// Sends telemetry payload to the specified endpoint via HTTP POST.
+pub async fn send_telemetry_http(endpoint: &str, payload: &TelemetryPayload) -> Result<(), String> {
+    let client = reqwest::Client::builder()
+        .timeout(HTTP_TIMEOUT)
+        .build()
+        .map_err(|e| format!("failed to build HTTP client: {e}"))?;
+
+    let response = client
+        .post(endpoint)
+        .header(
+            reqwest::header::USER_AGENT,
+            format!("SpeakType/{}", payload.app_version),
+        )
+        .json(payload)
+        .send()
+        .await
+        .map_err(|e| format!("HTTP request failed: {e}"))?;
+
+    if response.status().is_success() {
+        Ok(())
+    } else {
+        Err(format!(
+            "telemetry server returned HTTP status {}",
+            response.status()
+        ))
+    }
+}
+
+/// Sends telemetry payload to the configured telemetry endpoint.
+pub async fn send_telemetry(payload: &TelemetryPayload) -> Result<(), String> {
+    let endpoint = telemetry_endpoint();
+    send_telemetry_http(&endpoint, payload).await
+}
+
+/// Synchronously sends telemetry payload, safe to call from any sync or async context.
+pub fn send_telemetry_blocking(payload: &TelemetryPayload) -> Result<(), String> {
+    let payload = payload.clone();
+    std::thread::spawn(move || {
+        tauri::async_runtime::block_on(send_telemetry(&payload))
+    })
+    .join()
+    .map_err(|_| "telemetry sending thread panicked".to_string())?
+}
+
 static EXITING: AtomicBool = AtomicBool::new(false);
 
 pub fn is_exiting() -> bool {
@@ -90,6 +145,10 @@ pub fn clean_exit(app: &AppHandle) {
     let payload = create_payload(app.clone(), model, anonymous_id, stats);
     eprintln!("Exit telemetry:");
     eprintln!("{payload:?}");
+
+    if let Err(e) = send_telemetry_blocking(&payload) {
+        eprintln!("[telemetry] HTTP send failed: {e}");
+    }
 
     app.exit(0);
 }
@@ -143,5 +202,11 @@ mod tests {
         assert!(!json.contains("desktop_env"));
         assert!(json.contains("\"os_name\":\"macOS\""));
         assert!(json.contains("\"arch\":\"aarch64\""));
+    }
+
+    #[test]
+    fn test_default_telemetry_endpoint() {
+        assert_eq!(DEFAULT_TELEMETRY_ENDPOINT, "https://telemetry.speaktype.com/api/v1/telemetry");
+        assert!(telemetry_endpoint().starts_with("http"));
     }
 }

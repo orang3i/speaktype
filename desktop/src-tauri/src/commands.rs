@@ -530,3 +530,19 @@ pub async fn reset_anonymous_id(
     Ok(new_id)
 }
 
+#[tauri::command]
+pub async fn send_telemetry(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> CommandResult<()> {
+    let settings = state.settings();
+    if !settings.telemetry_enabled {
+        return Err("Telemetry is disabled in settings".to_string());
+    }
+    let model = settings.selected_model;
+    let anonymous_id = settings.anonymous_id;
+    let stats = state.telemetry.lock_unpoisoned().clone();
+    let payload = crate::telemetry::create_payload(app, model, anonymous_id, stats);
+    crate::telemetry::send_telemetry(&payload).await
+}
+
