@@ -354,11 +354,15 @@ impl Session {
     fn start(&mut self, by_hotkey: bool) {
         let settings = self.state().settings();
         if settings.selected_model.is_empty() {
-            self.state().telemetry.lock_unpoisoned().record_error("no_model_selected");
+            if settings.telemetry_enabled {
+                self.state().telemetry.lock_unpoisoned().record_error("no_model_selected");
+            }
             return self.flash("No model selected", ERROR_MESSAGE);
         }
         if !self.state().models.is_downloaded(&settings.selected_model) {
-            self.state().telemetry.lock_unpoisoned().record_error("model_not_downloaded");
+            if settings.telemetry_enabled {
+                self.state().telemetry.lock_unpoisoned().record_error("model_not_downloaded");
+            }
             return self.flash("Model not downloaded", ERROR_MESSAGE);
         }
 
@@ -381,7 +385,9 @@ impl Session {
             }
             Err(e) => {
                 eprintln!("[dictation] {e}");
-                self.state().telemetry.lock_unpoisoned().record_error("microphone_unavailable");
+                if self.state().settings().telemetry_enabled {
+                    self.state().telemetry.lock_unpoisoned().record_error("microphone_unavailable");
+                }
                 self.flash("Microphone unavailable", ERROR_MESSAGE);
             }
         }
@@ -395,7 +401,9 @@ impl Session {
             Ok(captured) => captured,
             Err(e) => {
                 eprintln!("[dictation] {e}");
-                self.state().telemetry.lock_unpoisoned().record_error("recording_failed");
+                if self.state().settings().telemetry_enabled {
+                    self.state().telemetry.lock_unpoisoned().record_error("recording_failed");
+                }
                 return self.flash("Recording failed", ERROR_MESSAGE);
             }
         };
@@ -456,7 +464,9 @@ impl Session {
         match outcome {
             Ok(text) => {
                 if !cancelled {
-                    self.state().telemetry.lock_unpoisoned().record_success();
+                    if self.state().settings().telemetry_enabled {
+                        self.state().telemetry.lock_unpoisoned().record_success();
+                    }
                     let restore = self.state().settings().restore_clipboard;
                     self.paster.paste(text, restore);
                 }
@@ -469,7 +479,9 @@ impl Session {
                     pipeline::Error::ModelLoad(_) => "model_load_failed",
                     pipeline::Error::Transcribe(_) => "transcription_failed",
                 };
-                self.state().telemetry.lock_unpoisoned().record_error(error_key);
+                if self.state().settings().telemetry_enabled {
+                    self.state().telemetry.lock_unpoisoned().record_error(error_key);
+                }
                 if let Some(detail) = e.detail() {
                     eprintln!("[dictation] {detail}");
                 }

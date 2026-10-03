@@ -1,4 +1,5 @@
 import {
+  Activity,
   BookA,
   ClipboardCheck,
   Command,
@@ -198,6 +199,7 @@ function GeneralTab() {
       </Section>
 
       <LanguageSection />
+      <TelemetrySection />
       <UpdatesSection />
       <ImportSection />
     </>
@@ -243,6 +245,36 @@ function LanguageSection() {
       <div className="px-5 py-3.5 type-small text-ink-muted">
         For languages other than English, use a multilingual model. English-only models can only write English.
       </div>
+    </Section>
+  );
+}
+
+function TelemetrySection() {
+  const { settings } = useStore();
+  const save = useSave();
+
+  return (
+    <Section title="Privacy & Diagnostics" description="Help improve SpeakType with anonymous statistics.">
+      <SettingRow
+        icon={Activity}
+        tone="neutral"
+        label="Anonymous telemetry"
+        description={
+          settings.telemetryEnabled
+            ? "Sends anonymous crash and dictation success/failure statistics on exit. No speech or transcripts are ever sent."
+            : "Telemetry is disabled. No usage data or exit statistics are collected."
+        }
+      >
+        <div className="flex items-center gap-3">
+          <Badge tone={settings.telemetryEnabled ? "success" : "neutral"}>
+            {settings.telemetryEnabled ? "Enabled" : "Disabled"}
+          </Badge>
+          <Switch
+            checked={settings.telemetryEnabled}
+            onChange={(telemetryEnabled) => save({ telemetryEnabled })}
+          />
+        </div>
+      </SettingRow>
     </Section>
   );
 }

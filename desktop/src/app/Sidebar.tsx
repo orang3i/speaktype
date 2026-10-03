@@ -7,7 +7,7 @@ import { NAV, type Route } from "./routes";
 
 /** Black in both themes; the one place neon green sits on a large dark surface. */
 export function Sidebar({ route, onNavigate }: { route: Route; onNavigate: (route: Route) => void }) {
-  const { status } = useStore();
+  const { status, settings } = useStore();
   // On macOS the window's traffic lights sit over the top of the sidebar.
   const macChrome = status.os === "macos";
   const isDebug = Boolean(status.debug ?? import.meta.env.DEV);
@@ -49,7 +49,20 @@ export function Sidebar({ route, onNavigate }: { route: Route; onNavigate: (rout
       <div className="flex-1" />
 
       {isDebug && (
-        <div className="px-3 pb-2">
+        <div className="flex flex-col gap-1.5 px-3 pb-2">
+          <div className="flex items-center justify-between px-3 py-1 type-caption text-white/50">
+            <span>Telemetry</span>
+            <span
+              className={cn(
+                "inline-flex h-4 items-center rounded-full px-2 text-[10px] font-medium transition-colors",
+                settings.telemetryEnabled
+                  ? "bg-accent/20 text-accent"
+                  : "bg-white/10 text-white/40",
+              )}
+            >
+              {settings.telemetryEnabled ? "Enabled" : "Disabled"}
+            </span>
+          </div>
           <button
             type="button"
             onClick={() => api.quitApp()}

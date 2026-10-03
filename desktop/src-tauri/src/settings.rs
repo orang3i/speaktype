@@ -72,6 +72,7 @@ pub struct Settings {
     pub has_imported_v1: bool,
     /// Set once the app has sent a new user to AI Models, so it only happens once.
     pub has_shown_model_prompt: bool,
+    pub telemetry_enabled: bool,
 }
 
 impl Default for Settings {
@@ -95,6 +96,7 @@ impl Default for Settings {
             has_completed_onboarding: false,
             has_imported_v1: false,
             has_shown_model_prompt: false,
+            telemetry_enabled: true,
         }
     }
 }
@@ -217,6 +219,7 @@ mod tests {
         assert_eq!(settings.pill_position, PillPosition::TopRight);
         assert_eq!(settings.hotkey, crate::platform::DEFAULT_HOTKEY);
         assert!(settings.show_tray_icon);
+        assert!(settings.telemetry_enabled);
         let entry = &settings.dictionary[0];
         assert!(entry.is_enabled && entry.match_whole_word);
     }
@@ -242,11 +245,13 @@ mod tests {
             "dictionary",
             "hasCompletedOnboarding",
             "hasShownModelPrompt",
+            "telemetryEnabled",
         ] {
             assert!(value.get(key).is_some(), "missing {key}");
         }
         assert_eq!(value["pillPosition"], "bottomCenter");
         assert_eq!(value["recordingMode"], "hold");
+        assert_eq!(value["telemetryEnabled"], true);
     }
 
     #[test]

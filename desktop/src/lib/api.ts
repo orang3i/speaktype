@@ -44,6 +44,7 @@ export interface Settings {
   hasShownModelPrompt: boolean;
   /** Set once SpeakType 1's data has been brought over. */
   hasImportedV1: boolean;
+  telemetryEnabled: boolean;
 }
 
 export type OS = "macos" | "windows" | "linux";

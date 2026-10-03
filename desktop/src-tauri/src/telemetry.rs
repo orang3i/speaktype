@@ -55,6 +55,11 @@ pub fn clean_exit(app: &AppHandle) {
         return;
     }
     let state = app.state::<AppState>();
+    if !state.settings().telemetry_enabled {
+        eprintln!("[telemetry] disabled by user settings");
+        app.exit(0);
+        return;
+    }
     let model = state.settings().selected_model;
     let stats = state.telemetry.lock_unpoisoned().clone();
     let payload = create_payload(app.clone(), model, stats);

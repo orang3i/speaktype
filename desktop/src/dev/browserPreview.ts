@@ -34,6 +34,7 @@ export function installBrowserPreview() {
     hasCompletedOnboarding: params.get("onboarding") !== "1",
     hasShownModelPrompt: true,
     hasImportedV1: false,
+    telemetryEnabled: true,
   };
 
   const transcripts = [
