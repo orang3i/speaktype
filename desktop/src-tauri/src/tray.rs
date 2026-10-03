@@ -60,7 +60,7 @@ pub fn build(app: &AppHandle, visible: bool) -> tauri::Result<()> {
             "open" => open_main_window(app, None),
             "settings" => open_main_window(app, Some("settings")),
             "dictate" => app.state::<AppState>().controller.send(Event::Toggle),
-            "quit" => app.exit(0),
+            "quit" => crate::clean_exit(app),
             _ => {}
         })
         .on_tray_icon_event(|tray, event| {

@@ -14,6 +14,8 @@ mod platform;
 mod settings;
 mod text;
 mod tray;
+mod telemetry;
+pub(crate) use telemetry::clean_exit;
 
 use std::sync::{Mutex, MutexGuard, OnceLock, PoisonError, RwLock, TryLockError};
 
@@ -134,6 +136,7 @@ pub(crate) struct AppState {
     device: OnceLock<DeviceInfo>,
     /// What was brought over from SpeakType 1 at first launch, until the UI has shown it.
     pub legacy_import: Mutex<Option<legacy::ImportSummary>>,
+    pub telemetry: Mutex<dictation::TelemetryStats>,
 }
 
 impl AppState {
@@ -241,9 +244,14 @@ pub fn run() {
     let app = tauri::Builder::default()
         // Launching SpeakType again brings the running app forward instead of
         // starting a second copy with its own tray icon and hotkey.
-        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            tray::open_main_window(app, None);
-        }))
+            .plugin(
+        tauri_plugin_single_instance::Builder::new()
+            .dbus_id("com.labs2048.speaktype")
+            .callback(|app, _args, _cwd| {
+                tray::open_main_window(app, None);
+            })
+            .build(),
+    )
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
@@ -284,6 +292,7 @@ pub fn run() {
                 dictation_state: Mutex::new(DictationState::Idle),
                 hotkey_error: Mutex::new(None),
                 device: OnceLock::new(),
+                telemetry: Mutex::new(dictation::TelemetryStats::new()),
             });
 
             if let Some(main) = app.get_webview_window("main") {
@@ -360,12 +369,20 @@ pub fn run() {
         .expect("error while building SpeakType");
 
     app.run(|app, event| {
-        // macOS: clicking the Dock icon brings the hidden window back.
-        #[cfg(target_os = "macos")]
-        if let tauri::RunEvent::Reopen { .. } = event {
-            tray::open_main_window(app, None);
+        match event {
+            tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit => {
+                clean_exit(app);
+            }
+
+            #[cfg(target_os = "macos")]
+            tauri::RunEvent::Reopen { .. } => {
+                tray::open_main_window(app, None);
+            }
+
+            #[cfg(not(target_os = "macos"))]
+            _ => {
+                let _ = (app, event);
+            }
         }
-        #[cfg(not(target_os = "macos"))]
-        let _ = (app, event);
     });
 }

@@ -55,6 +55,7 @@ export interface Status {
   hotkeyError: string | null;
   /** Single-modifier hotkeys this OS supports, e.g. "Fn". */
   modifierHotkeys: string[];
+  debug?: boolean;
 }
 
 export interface InputDevice {

@@ -490,6 +490,6 @@ pub async fn hide_tray_panel(app: AppHandle) -> CommandResult<()> {
 
 #[tauri::command]
 pub async fn quit_app(app: AppHandle) -> CommandResult<()> {
-    app.exit(0);
+    crate::clean_exit(&app);
     Ok(())
 }
