@@ -489,7 +489,28 @@ pub async fn hide_tray_panel(app: AppHandle) -> CommandResult<()> {
 }
 
 #[tauri::command]
-pub async fn quit_app(app: AppHandle) -> CommandResult<()> {
-    crate::clean_exit(&app);
-    Ok(())
+pub async fn quit_app(app: AppHandle, force: Option<bool>) -> CommandResult<()> {
+    if force.unwrap_or(false) {
+        crate::clean_exit(&app);
+        return Ok(());
+    }
+    let state = app.state::<AppState>();
+    let settings = state.settings();
+    if settings.telemetry_enabled && settings.show_telemetry_payload {
+        crate::telemetry::prompt_exit_telemetry(&app);
+        Ok(())
+    } else {
+        crate::clean_exit(&app);
+        Ok(())
+    }
+}
+
+#[tauri::command]
+pub async fn get_telemetry_payload(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> CommandResult<crate::telemetry::TelemetryPayload> {
+    let model = state.settings().selected_model;
+    let stats = state.telemetry.lock_unpoisoned().clone();
+    Ok(crate::telemetry::create_payload(app, model, stats))
 }

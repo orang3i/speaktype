@@ -364,13 +364,26 @@ pub fn run() {
             commands::open_main_window,
             commands::hide_tray_panel,
             commands::quit_app,
+            commands::get_telemetry_payload,
         ])
         .build(tauri::generate_context!())
         .expect("error while building SpeakType");
 
     app.run(|app, event| {
         match event {
-            tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit => {
+            tauri::RunEvent::ExitRequested { api, .. } => {
+                if !telemetry::is_exiting() {
+                    let state = app.state::<AppState>();
+                    let settings = state.settings();
+                    if settings.telemetry_enabled && settings.show_telemetry_payload {
+                        api.prevent_exit();
+                        telemetry::prompt_exit_telemetry(app);
+                        return;
+                    }
+                }
+                clean_exit(app);
+            }
+            tauri::RunEvent::Exit => {
                 clean_exit(app);
             }
 

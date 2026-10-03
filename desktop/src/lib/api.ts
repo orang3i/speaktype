@@ -45,6 +45,7 @@ export interface Settings {
   /** Set once SpeakType 1's data has been brought over. */
   hasImportedV1: boolean;
   telemetryEnabled: boolean;
+  showTelemetryPayload: boolean;
 }
 
 export type OS = "macos" | "windows" | "linux";
@@ -167,6 +168,22 @@ export interface UpdateInfo {
   url: string;
 }
 
+export interface TelemetryPayload {
+  os_name: string;
+  os_version: string;
+  arch: string;
+  kernel_version?: string;
+  distribution_id?: string;
+  desktop_env?: string;
+  app_version: string;
+  model: string;
+  stats: {
+    success_count: number;
+    fail_count: number;
+    errors: Record<string, number>;
+  };
+}
+
 export const api = {
   getStatus: () => invoke<Status>("get_status"),
   getSettings: () => invoke<Settings>("get_settings"),
@@ -200,7 +217,8 @@ export const api = {
 
   openMainWindow: (route?: string) => invoke<void>("open_main_window", { route }),
   hideTrayPanel: () => invoke<void>("hide_tray_panel"),
-  quitApp: () => invoke<void>("quit_app"),
+  quitApp: (force?: boolean) => invoke<void>("quit_app", { force }),
+  getTelemetryPayload: () => invoke<TelemetryPayload>("get_telemetry_payload"),
 };
 
 /** Turns a rejected invoke into a readable message. */

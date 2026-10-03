@@ -35,6 +35,7 @@ export function installBrowserPreview() {
     hasShownModelPrompt: true,
     hasImportedV1: false,
     telemetryEnabled: true,
+    showTelemetryPayload: false,
   };
 
   const transcripts = [

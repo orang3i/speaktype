@@ -73,6 +73,7 @@ pub struct Settings {
     /// Set once the app has sent a new user to AI Models, so it only happens once.
     pub has_shown_model_prompt: bool,
     pub telemetry_enabled: bool,
+    pub show_telemetry_payload: bool,
 }
 
 impl Default for Settings {
@@ -96,7 +97,8 @@ impl Default for Settings {
             has_completed_onboarding: false,
             has_imported_v1: false,
             has_shown_model_prompt: false,
-            telemetry_enabled: true,
+            telemetry_enabled: false,
+            show_telemetry_payload: false,
         }
     }
 }
@@ -246,12 +248,14 @@ mod tests {
             "hasCompletedOnboarding",
             "hasShownModelPrompt",
             "telemetryEnabled",
+            "showTelemetryPayload",
         ] {
             assert!(value.get(key).is_some(), "missing {key}");
         }
         assert_eq!(value["pillPosition"], "bottomCenter");
         assert_eq!(value["recordingMode"], "hold");
         assert_eq!(value["telemetryEnabled"], true);
+        assert_eq!(value["showTelemetryPayload"], false);
     }
 
     #[test]

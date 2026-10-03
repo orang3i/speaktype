@@ -3,6 +3,7 @@ import {
   BookA,
   ClipboardCheck,
   Command,
+  Eye,
   Globe,
   Hand,
   Import,
@@ -24,6 +25,7 @@ import { useCallback, useEffect, useState } from "react";
 import { HotkeyPicker } from "@/components/settings/HotkeyPicker";
 import { PillPositionPicker } from "@/components/settings/PillPositionPicker";
 import { PermissionList } from "@/components/PermissionList";
+import { TelemetryDialog } from "@/components/TelemetryDialog";
 import { UpdateDialog } from "@/components/UpdateDialog";
 import {
   Badge,
@@ -40,7 +42,7 @@ import {
   useToast,
   type SelectOption,
 } from "@/components/ui";
-import { api, errorMessage, type InputDevice, type LegacyStatus, type Settings, type UpdateInfo } from "@/lib/api";
+import { api, errorMessage, type InputDevice, type LegacyStatus, type Settings, type TelemetryPayload, type UpdateInfo } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { describeImport } from "@/lib/format";
 
@@ -252,6 +254,21 @@ function LanguageSection() {
 function TelemetrySection() {
   const { settings } = useStore();
   const save = useSave();
+  const toast = useToast();
+  const [previewPayload, setPreviewPayload] = useState<TelemetryPayload | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const inspect = async () => {
+    setLoading(true);
+    try {
+      const payload = await api.getTelemetryPayload();
+      setPreviewPayload(payload);
+    } catch (e) {
+      toast(errorMessage(e), "error");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Section title="Privacy & Diagnostics" description="Help improve SpeakType with anonymous statistics.">
@@ -275,6 +292,36 @@ function TelemetrySection() {
           />
         </div>
       </SettingRow>
+
+      <SettingRow
+        icon={Eye}
+        tone="neutral"
+        label="Show telemetry payload in UI"
+        description="Shows a dialog with the raw JSON payload in the UI whenever telemetry is being sent."
+      >
+        <Switch
+          checked={settings.showTelemetryPayload}
+          disabled={!settings.telemetryEnabled}
+          onChange={(showTelemetryPayload) => save({ showTelemetryPayload })}
+        />
+      </SettingRow>
+
+      <div className="px-5 py-3">
+        <Button
+          variant="secondary"
+          icon={Eye}
+          loading={loading}
+          disabled={!settings.telemetryEnabled}
+          onClick={inspect}
+        >
+          View current payload
+        </Button>
+      </div>
+
+      <TelemetryDialog
+        payload={previewPayload}
+        onClose={() => setPreviewPayload(null)}
+      />
     </Section>
   );
 }

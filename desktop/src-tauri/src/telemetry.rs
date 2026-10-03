@@ -1,11 +1,11 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use serde::Serialize;
 use sysinfo::System;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 
 use crate::{dictation::TelemetryStats, platform::desktop_environment, AppState, LockExt};
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct TelemetryPayload {
     pub os_name: String,
     pub os_version: String,
@@ -48,6 +48,20 @@ pub fn create_payload(app: AppHandle, model: String, stats: TelemetryStats) -> T
 }
 
 static EXITING: AtomicBool = AtomicBool::new(false);
+
+pub fn is_exiting() -> bool {
+    EXITING.load(Ordering::SeqCst)
+}
+
+/// Prompts the UI to display the telemetry payload before exiting.
+pub fn prompt_exit_telemetry(app: &AppHandle) {
+    let state = app.state::<AppState>();
+    let model = state.settings().selected_model;
+    let stats = state.telemetry.lock_unpoisoned().clone();
+    let payload = create_payload(app.clone(), model, stats);
+    crate::tray::open_main_window(app, None);
+    let _ = app.emit("show-telemetry-payload", &payload);
+}
 
 /// Gathers telemetry, logs/emits payload, and cleanly shuts down the application.
 pub fn clean_exit(app: &AppHandle) {
